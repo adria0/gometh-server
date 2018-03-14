@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/user"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -26,14 +25,27 @@ var RootCmd = &cobra.Command{
 	},
 }
 
-var runCmd = &cobra.Command{
+var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Start the server",
 	Long:  "Start the server",
 	Run: func(cmd *cobra.Command, args []string) {
 		json, _ := json.MarshalIndent(C, "", "  ")
 		log.Println("Efective configuration: " + string(json))
-		startServer()
+		serverInit()
+		serverStart()
+	},
+}
+
+var deployCmd = &cobra.Command{
+	Use:   "deploy",
+	Short: "Deploy the smartcontracts",
+	Long:  "Deploy the smartcontracts in two chains",
+	Run: func(cmd *cobra.Command, args []string) {
+		json, _ := json.MarshalIndent(C, "", "  ")
+		log.Println("Efective configuration: " + string(json))
+		serverInit()
+		serverDeploy()
 	},
 }
 
@@ -53,7 +65,8 @@ func init() {
 
 	cobra.OnInitialize(initConfig)
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.gometh.yaml)")
-	RootCmd.AddCommand(runCmd)
+	RootCmd.AddCommand(startCmd)
+	RootCmd.AddCommand(deployCmd)
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -78,14 +91,6 @@ func initConfig() {
 		}
 	} else {
 		log.Fatalln("Configuration file ~/.gometh.yaml not found.")
-	}
-
-	if C.DataPath == "" {
-		usr, err := user.Current()
-		if err != nil {
-			log.Fatal(err)
-		}
-		C.DataPath = usr.HomeDir + "/.gometh"
 	}
 
 }

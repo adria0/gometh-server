@@ -1,6 +1,17 @@
-DataPath : .
-KeystorePath : test/keystore
-KeystorePasswd : 111111
-ContractsPath : ../../../../gometh-contracts/build/contracts
-ParentWSUrl : ws://127.0.0.1:8546
-ChildrenWSUrl : ws://127.0.0.1:8546
+Keystore:
+  Path : test/keystore
+  Passwd : 111111
+
+Contracts:
+  Path: ../../../../gometh-contracts/build/contracts 
+  DeploySigners:
+    - d12bffb652008e1d46a2cac08b6ceebc4f652b60
+
+MainChain:
+  RPCURL : ws://127.0.0.1:8546
+  BridgeAddress : 0x4EfAB3BFb5df6Fb851DdF8dF2647F5614a0306f5
+
+SideChain:
+  RPCURL : ws://127.0.0.1:8546
+  BridgeAddress : 0x2a9a379278fb66A5564F1102ef4B9E7d95ce28f7
+

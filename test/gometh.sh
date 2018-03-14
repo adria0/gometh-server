@@ -1,1 +1,1 @@
-go run main.go --config test/gometh.yaml start
+go run main.go --config test/gometh.yaml $*
