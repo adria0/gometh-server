@@ -10,7 +10,6 @@ import (
 	eth "github.com/adriamb/gometh-server/gometh/eth"
 
 	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -30,16 +29,6 @@ var (
 	childContract  *eth.Contract
 	wethContract   *eth.Contract
 )
-
-func callLock(value *big.Int) error {
-	_, _, err := parentContract.SendTransactionSync(value, "lock")
-	return err
-}
-
-func callBurn(value *big.Int) error {
-	_, _, err := childContract.SendTransactionSync(big.NewInt(0), "burn", value)
-	return err
-}
 
 func sign(client *eth.Web3Client, data ...[]byte) ([3][32]byte, error) {
 	web3SignaturePrefix := []byte("\x19Ethereum Signed Message:\n32")
@@ -62,37 +51,6 @@ func sign(client *eth.Web3Client, data ...[]byte) ([3][32]byte, error) {
 	return ret, nil
 }
 
-func handleLockEvent(eventlog *types.Log) {
-
-	type LogLockEvent struct {
-		Epoch *big.Int
-		From  common.Address
-		Value *big.Int
-	}
-
-	var event LogLockEvent
-	err := parentContract.Abi.Unpack(&event, "LogLock", eventlog.Data)
-	assert(err)
-
-	log.Printf("LockEvent %v %v wei", event.From.Hex(), event.Value)
-
-	mintmsg, err := childContract.Abi.Pack("_mintmultisigned", event.From, event.Value)
-	assert(err)
-
-	var txhash [32]byte
-	copy(txhash[:], eventlog.TxHash.Bytes())
-
-	log.Printf("partialExecuteOff _mint")
-
-	_, _, err = childContract.SendTransactionSync(
-		big.NewInt(0),
-		"partialExecuteOn", event.Epoch, txhash, mintmsg,
-	)
-
-	assert(err)
-
-}
-
 func handleLogEvent(eventlog *types.Log) {
 
 	var event string
@@ -100,113 +58,6 @@ func handleLogEvent(eventlog *types.Log) {
 	assert(err)
 
 	log.Printf("contractlog %#v\n", event)
-}
-
-func handleBurnEvent(eventlog *types.Log) {
-
-	type BurnEvent struct {
-		Epoch *big.Int
-		From  common.Address
-		Value *big.Int
-	}
-
-	var event BurnEvent
-	err := childContract.Abi.Unpack(&event, "LogBurn", eventlog.Data)
-	assert(err)
-
-	log.Printf("LogBurn")
-
-	burnmsg, err := childContract.Abi.Pack("_burnmultisigned", event.From, event.Value)
-	assert(err)
-
-	var txhash [32]byte
-	copy(txhash[:], eventlog.TxHash.Bytes())
-
-	log.Printf("partialExecuteOff _burnmultisigned")
-
-	_, _, err = childContract.SendTransactionSync(
-		big.NewInt(0),
-		"partialExecuteOn", event.Epoch, txhash, burnmsg,
-	)
-
-	assert(err)
-
-}
-
-func handleBurnMultisignedEvent(eventlog *types.Log) {
-
-	log.Printf("LogBurnMultisigned")
-
-}
-
-func handleStateChange(eventlog *types.Log) {
-
-	type StateChangeEvent struct {
-		BlockNo   *big.Int
-		RootState [32]byte
-	}
-
-	epoch := big.NewInt(0)
-	txid := common.BytesToHash(eventlog.TxHash.Bytes())
-
-	var event StateChangeEvent
-	err := wethContract.Abi.Unpack(&event, "StateChange", eventlog.Data)
-	assert(err)
-
-	msg, err := childContract.Abi.Pack("_statechangemultisigned", event.BlockNo, event.RootState)
-	assert(err)
-	sig, err := sign(childClient, abi.U256(epoch), txid[:], msg)
-
-	assert(err)
-
-	log.Printf("partialExecuteOff _statechangemultisigned")
-	_, _, err = childContract.SendTransactionSync(
-		big.NewInt(0),
-		"partialExecuteOff", epoch, txid, msg, sig,
-	)
-
-	assert(err)
-}
-
-func handleMintMultisigned(eventlog *types.Log) {
-
-	type MintMultisignedEvent struct {
-		To    common.Address
-		Value *big.Int
-	}
-
-	var event MintMultisignedEvent
-	err := childContract.Abi.Unpack(&event, "LogMintMultisigned", eventlog.Data)
-	assert(err)
-
-	log.Printf("MintMultisigned %v %v wei\n", event.To.Hex(), event.Value)
-}
-
-func handleTransferEvent(eventlog *types.Log) {
-
-	type TransferEvent struct {
-		Value *big.Int
-	}
-
-	var event TransferEvent
-	err := wethContract.Abi.Unpack(&event, "Transfer", eventlog.Data)
-	assert(err)
-
-	from := common.BytesToAddress(eventlog.Topics[1][:])
-	to := common.BytesToAddress(eventlog.Topics[2][:])
-
-	log.Printf("WTransfer %v %v->%v\n", event.Value, from.Hex(), to.Hex())
-}
-
-func handleStateChangeMultisigned(eventlog *types.Log) {
-
-	type StateChangeMultisignedEvent struct {
-		BlockNo   *big.Int
-		RootState [32]byte
-	}
-
-	log.Printf("StateChangeMultisigned")
-
 }
 
 func dotest() {
@@ -328,6 +179,7 @@ func serverStart() {
 	assert(childClient.RegisterEventHandler(childContract, "LogMintMultisigned", handleMintMultisigned))
 
 	assert(childClient.RegisterEventHandler(wethContract, "StateChange", handleStateChange))
+	assert(childClient.RegisterEventHandler(wethContract, "Transfer", handleTransferEvent))
 	assert(childClient.RegisterEventHandler(wethContract, "Log", handleLogEvent))
 
 	childClient.HandleEvents()
