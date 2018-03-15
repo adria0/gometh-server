@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	cfg "github.com/adriamb/gometh-server/gometh/config"
+
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
@@ -136,6 +138,10 @@ func (b *Web3Client) SendTransactionSync(to *common.Address, value *big.Int, cal
 	if tx, err = b.Ks.SignTx(b.Account, tx, network); err != nil {
 		b.ClientMutex.Unlock()
 		return nil, nil, err
+	}
+
+	if cfg.Verbose > 0 {
+		log.Println(tx.String())
 	}
 
 	if err = b.Client.SendTransaction(ctx, tx); err != nil {

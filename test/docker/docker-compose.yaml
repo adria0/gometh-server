@@ -4,28 +4,34 @@ services:
     build:
       dockerfile: geth.dockerfile
       context : .
-    mem_limit: 250000000
+#    mem_limit: 250000000
     ports:
       - "18545:8545"
     volumes:
       - ./data:/data:ro
+      - ./../build:/build:ro
     links:
       - poa2
-    entrypoint: /bin/sh /data/poa.sh poa1
-
+      - parent
+    entrypoint: /bin/sleep 1d
+#    entrypoint: /bin/sh /data/poa.sh poa1
+# /root/go/bin/gometh-server --config /dyndata/gometh.yaml deploy
   poa2:
     build:
       dockerfile: geth.dockerfile
       context : .
-    mem_limit: 250000000
-    cpu_percent: 5
+#    mem_limit: 250000000
+#    cpu_percent: 5
     ports:
       - "28545:8545"
     volumes:
       - ./data:/data:ro
+      - ./../build:/build:ro
     links:
+      - parent
       - poa3 
-    entrypoint: /bin/sh /data/poa.sh poa2
+    entrypoint: /bin/sleep 1d
+#    entrypoint: /bin/sh /data/poa.sh poa2
 
   poa3:
     build:
@@ -33,11 +39,15 @@ services:
       context : .
     ports:
       - "38545:8545"
-    mem_limit: 250000000
-    cpu_percent: 5
+#    mem_limit: 250000000
+#    cpu_percent: 5
     volumes:
       - ./data:/data:ro
-    entrypoint: /bin/sh /data/poa.sh poa3
+      - ./../build:/build:ro
+    links:
+      - parent
+    #entrypoint: /bin/sh /data/poa.sh poa3
+    entrypoint: /bin/sleep 1d
 
   parent:
     build:
@@ -45,8 +55,8 @@ services:
       context : .
     ports:
       - "48545:8545"
-    mem_limit: 300000000
-    cpu_percent: 5
+#    mem_limit: 300000000
+#    cpu_percent: 5
     volumes:
       - ./data:/data:ro
     entrypoint: /bin/sh /data/parent.sh

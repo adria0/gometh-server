@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	cfg "github.com/adriamb/gometh-server/gometh/config"
 	eth "github.com/adriamb/gometh-server/gometh/eth"
 
 	"github.com/ethereum/go-ethereum/accounts"
@@ -75,24 +76,24 @@ func serverInit() {
 	var err error
 	var account accounts.Account
 
-	ks := keystore.NewKeyStore(C.Keystore.Path, keystore.StandardScryptN, keystore.StandardScryptP)
+	ks := keystore.NewKeyStore(cfg.C.Keystore.Path, keystore.StandardScryptN, keystore.StandardScryptP)
 	if len(ks.Accounts()) != 1 {
 		panic(fmt.Sprintf("Not exact one account in keystore, was %v", len(ks.Accounts())))
 	}
 	account = ks.Accounts()[0]
-	assert(ks.Unlock(account, C.Keystore.Passwd))
+	assert(ks.Unlock(account, cfg.C.Keystore.Passwd))
 
 	// -- create clients
 
 	parentClient, err = eth.NewWeb3Client(
-		C.MainChain.RPCURL,
+		cfg.C.MainChain.RPCURL,
 		ks,
 		account,
 	)
 	assert(err)
 
 	childClient, err = eth.NewWeb3Client(
-		C.SideChain.RPCURL,
+		cfg.C.SideChain.RPCURL,
 		ks,
 		account,
 	)
@@ -110,13 +111,13 @@ func serverInit() {
 	log.Println("Child chain account", childAccountInfo)
 
 	// -- load contracts
-	parentContract, err = eth.NewContract(parentClient, C.Contracts.Path+"/GometParent.json")
+	parentContract, err = eth.NewContract(parentClient, cfg.C.Contracts.Path+"/GometParent.json")
 	assert(err)
 
-	childContract, err = eth.NewContract(childClient, C.Contracts.Path+"/GometChild.json")
+	childContract, err = eth.NewContract(childClient, cfg.C.Contracts.Path+"/GometChild.json")
 	assert(err)
 
-	wethContract, err = eth.NewContract(childClient, C.Contracts.Path+"/WETH.json")
+	wethContract, err = eth.NewContract(childClient, cfg.C.Contracts.Path+"/WETH.json")
 	assert(err)
 
 }
@@ -125,14 +126,14 @@ func serverDeploy() {
 
 	var err error
 
-	if len(C.Contracts.DeploySigners) == 0 {
+	if len(cfg.C.Contracts.DeploySigners) == 0 {
 		assert(fmt.Errorf("Initial signers list is empty"))
 	}
 
-	assert(C.VerifyDeploySigners())
+	assert(cfg.C.VerifyDeploySigners())
 
-	initialSigners := make([]common.Address, len(C.Contracts.DeploySigners))
-	for i, signer := range C.Contracts.DeploySigners {
+	initialSigners := make([]common.Address, len(cfg.C.Contracts.DeploySigners))
+	for i, signer := range cfg.C.Contracts.DeploySigners {
 		initialSigners[i] = common.HexToAddress(signer)
 	}
 
@@ -157,12 +158,12 @@ func serverDeploy() {
 
 func serverStart() {
 
-	assert(C.VerifyAddresses())
+	assert(cfg.C.VerifyAddresses())
 
-	parentContract.SetAddress(common.HexToAddress(C.MainChain.BridgeAddress))
+	parentContract.SetAddress(common.HexToAddress(cfg.C.MainChain.BridgeAddress))
 	log.Println("GometParent address is ", parentContract.Address.Hex())
 
-	childContract.SetAddress(common.HexToAddress(C.SideChain.BridgeAddress))
+	childContract.SetAddress(common.HexToAddress(cfg.C.SideChain.BridgeAddress))
 	log.Println("GometChild address is ", childContract.Address.Hex())
 
 	// -- get weth address

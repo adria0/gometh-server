@@ -7,14 +7,12 @@ import (
 	"math/big"
 	"os"
 
+	cfg "github.com/adriamb/gometh-server/gometh/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var cfgFile string
-
-// C is the package config
-var C Config
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
@@ -31,7 +29,7 @@ var startCmd = &cobra.Command{
 	Short: "Start the server",
 	Long:  "Start the server",
 	Run: func(cmd *cobra.Command, args []string) {
-		json, _ := json.MarshalIndent(C, "", "  ")
+		json, _ := json.MarshalIndent(cfg.C, "", "  ")
 		log.Println("Efective configuration: " + string(json))
 		serverInit()
 		serverStart()
@@ -43,8 +41,6 @@ var lockCmd = &cobra.Command{
 	Short: "Lock ethers",
 	Long:  "Send ethers to the parentchain->sidechain",
 	Run: func(cmd *cobra.Command, args []string) {
-		json, _ := json.MarshalIndent(C, "", "  ")
-		log.Println("Efective configuration: " + string(json))
 		serverInit()
 		callLock(big.NewInt(10))
 	},
@@ -55,8 +51,6 @@ var burnCmd = &cobra.Command{
 	Short: "Unlock ethers",
 	Long:  "Send ethers to the sidechain->parentchain",
 	Run: func(cmd *cobra.Command, args []string) {
-		json, _ := json.MarshalIndent(C, "", "  ")
-		log.Println("Efective configuration: " + string(json))
 		serverInit()
 		callBurn(big.NewInt(10))
 	},
@@ -67,7 +61,7 @@ var deployCmd = &cobra.Command{
 	Short: "Deploy the smartcontracts",
 	Long:  "Deploy the smartcontracts in two chains",
 	Run: func(cmd *cobra.Command, args []string) {
-		json, _ := json.MarshalIndent(C, "", "  ")
+		json, _ := json.MarshalIndent(cfg.C, "", "  ")
 		log.Println("Efective configuration: " + string(json))
 		serverInit()
 		serverDeploy()
@@ -84,12 +78,11 @@ func ExecuteCmd() {
 	}
 }
 
-var patata string
-
 func init() {
 
 	cobra.OnInitialize(initConfig)
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.gometh.yaml)")
+	RootCmd.PersistentFlags().IntVar(&cfg.Verbose, "verbose", 0, "verboose level")
 	RootCmd.AddCommand(startCmd)
 	RootCmd.AddCommand(deployCmd)
 	RootCmd.AddCommand(lockCmd)
@@ -113,7 +106,7 @@ func initConfig() {
 
 	if err := viper.ReadInConfig(); err == nil {
 		log.Println("Using config file:", cfgFile)
-		if err := viper.Unmarshal(&C); err != nil {
+		if err := viper.Unmarshal(&cfg.C); err != nil {
 			panic(err)
 		}
 	} else {
