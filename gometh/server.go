@@ -156,7 +156,7 @@ func serverDeploy() {
 	log.Println("WETH attached to GometChild")
 }
 
-func serverStart() {
+func loadContracts() {
 
 	assert(cfg.C.VerifyAddresses())
 
@@ -171,6 +171,12 @@ func serverStart() {
 	assert(err)
 	wethContract.SetAddress(common.BytesToAddress(wethcallresult[12:]))
 	log.Println("WETH address is ", wethContract.Address.Hex())
+
+}
+
+func serverStart() {
+
+	loadContracts()
 
 	// -- register event handlers & start processing
 
