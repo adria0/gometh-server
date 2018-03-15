@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/big"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -37,6 +38,30 @@ var startCmd = &cobra.Command{
 	},
 }
 
+var lockCmd = &cobra.Command{
+	Use:   "lock",
+	Short: "Lock ethers",
+	Long:  "Send ethers to the parentchain->sidechain",
+	Run: func(cmd *cobra.Command, args []string) {
+		json, _ := json.MarshalIndent(C, "", "  ")
+		log.Println("Efective configuration: " + string(json))
+		serverInit()
+		callLock(big.NewInt(10))
+	},
+}
+
+var burnCmd = &cobra.Command{
+	Use:   "unlock",
+	Short: "Unlock ethers",
+	Long:  "Send ethers to the sidechain->parentchain",
+	Run: func(cmd *cobra.Command, args []string) {
+		json, _ := json.MarshalIndent(C, "", "  ")
+		log.Println("Efective configuration: " + string(json))
+		serverInit()
+		callBurn(big.NewInt(10))
+	},
+}
+
 var deployCmd = &cobra.Command{
 	Use:   "deploy",
 	Short: "Deploy the smartcontracts",
@@ -67,6 +92,8 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.gometh.yaml)")
 	RootCmd.AddCommand(startCmd)
 	RootCmd.AddCommand(deployCmd)
+	RootCmd.AddCommand(lockCmd)
+	RootCmd.AddCommand(burnCmd)
 }
 
 // initConfig reads in config file and ENV variables if set.

@@ -65,8 +65,8 @@ func handleLogEvent(eventlog *types.Log) error {
 }
 
 func dotest() {
-	callLock(big.NewInt(1000))
-	callBurn(big.NewInt(10))
+	//callLock(big.NewInt(1000))
+	//callBurn(big.NewInt(10))
 }
 
 func serverInit() {
