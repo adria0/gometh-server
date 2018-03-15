@@ -108,7 +108,10 @@ func (b *Web3Client) SendTransactionSync(to *common.Address, value *big.Int, cal
 	gasLimit, err := b.Client.EstimateGas(ctx, callmsg)
 	if err != nil {
 		if cfg.Verbose > 0 {
-			log.Printf("Failed EstimateGas %#v", callmsg)
+			log.Printf("Failed EstimateGas from=%v to=%v value=%v data=%v",
+				callmsg.From.Hex(), callmsg.To.Hex(),
+				callmsg.Value, hex.EncodeToString(callmsg.Data),
+			)
 		}
 		return nil, nil, err
 	}
