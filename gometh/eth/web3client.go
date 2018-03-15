@@ -98,13 +98,18 @@ func (b *Web3Client) SendTransactionSync(to *common.Address, value *big.Int, cal
 		return nil, nil, err
 	}
 
-	gasLimit, err := b.Client.EstimateGas(ctx, ethereum.CallMsg{
+	callmsg := ethereum.CallMsg{
 		From:  b.Account.Address,
 		To:    to,
 		Value: value,
 		Data:  calldata,
-	})
+	}
+
+	gasLimit, err := b.Client.EstimateGas(ctx, callmsg)
 	if err != nil {
+		if cfg.Verbose > 0 {
+			log.Printf("Failed EstimateGas %#v", callmsg)
+		}
 		return nil, nil, err
 	}
 
