@@ -51,13 +51,17 @@ func sign(client *eth.Web3Client, data ...[]byte) ([3][32]byte, error) {
 	return ret, nil
 }
 
-func handleLogEvent(eventlog *types.Log) {
+func handleLogEvent(eventlog *types.Log) error {
 
 	var event string
 	err := parentContract.Abi.Unpack(&event, "Log", eventlog.Data)
-	assert(err)
+	if err != nil {
+		return err
+	}
 
 	log.Printf("contractlog %#v\n", event)
+
+	return nil
 }
 
 func dotest() {

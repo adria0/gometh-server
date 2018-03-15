@@ -14,7 +14,7 @@ func callBurn(value *big.Int) error {
 	return err
 }
 
-func handleBurnEvent(eventlog *types.Log) {
+func handleBurnEvent(eventlog *types.Log) error {
 
 	type BurnEvent struct {
 		Epoch *big.Int
@@ -24,12 +24,16 @@ func handleBurnEvent(eventlog *types.Log) {
 
 	var event BurnEvent
 	err := childContract.Abi.Unpack(&event, "LogBurn", eventlog.Data)
-	assert(err)
+	if err != nil {
+		return err
+	}
 
 	log.Printf("LogBurn")
 
 	burnmsg, err := childContract.Abi.Pack("_burnmultisigned", event.From, event.Value)
-	assert(err)
+	if err != nil {
+		return err
+	}
 
 	var txhash [32]byte
 	copy(txhash[:], eventlog.TxHash.Bytes())
@@ -41,17 +45,19 @@ func handleBurnEvent(eventlog *types.Log) {
 		"partialExecuteOn", event.Epoch, txhash, burnmsg,
 	)
 
-	assert(err)
+	return err
 
 }
 
-func handleBurnMultisignedEvent(eventlog *types.Log) {
+func handleBurnMultisignedEvent(eventlog *types.Log) error {
 
 	log.Printf("LogBurnMultisigned")
 
+	return nil
+
 }
 
-func handleStateChange(eventlog *types.Log) {
+func handleStateChange(eventlog *types.Log) error {
 
 	type StateChangeEvent struct {
 		BlockNo   *big.Int
@@ -63,13 +69,19 @@ func handleStateChange(eventlog *types.Log) {
 
 	var event StateChangeEvent
 	err := wethContract.Abi.Unpack(&event, "StateChange", eventlog.Data)
-	assert(err)
+	if err != nil {
+		return err
+	}
 
 	msg, err := childContract.Abi.Pack("_statechangemultisigned", event.BlockNo, event.RootState)
-	assert(err)
+	if err != nil {
+		return err
+	}
 	sig, err := sign(childClient, abi.U256(epoch), txid[:], msg)
 
-	assert(err)
+	if err != nil {
+		return err
+	}
 
 	log.Printf("partialExecuteOff _statechangemultisigned")
 	_, _, err = childContract.SendTransactionSync(
@@ -77,10 +89,10 @@ func handleStateChange(eventlog *types.Log) {
 		"partialExecuteOff", epoch, txid, msg, sig,
 	)
 
-	assert(err)
+	return err
 }
 
-func handleStateChangeMultisigned(eventlog *types.Log) {
+func handleStateChangeMultisigned(eventlog *types.Log) error {
 
 	type StateChangeMultisignedEvent struct {
 		BlockNo   *big.Int
@@ -88,9 +100,11 @@ func handleStateChangeMultisigned(eventlog *types.Log) {
 	}
 
 	log.Printf("StateChangeMultisigned")
+
+	return nil
 }
 
-func handleMintMultisigned(eventlog *types.Log) {
+func handleMintMultisigned(eventlog *types.Log) error {
 
 	type MintMultisignedEvent struct {
 		To    common.Address
@@ -99,12 +113,16 @@ func handleMintMultisigned(eventlog *types.Log) {
 
 	var event MintMultisignedEvent
 	err := childContract.Abi.Unpack(&event, "LogMintMultisigned", eventlog.Data)
-	assert(err)
+	if err != nil {
+		return err
+	}
 
 	log.Printf("MintMultisigned %v %v wei\n", event.To.Hex(), event.Value)
+
+	return nil
 }
 
-func handleTransferEvent(eventlog *types.Log) {
+func handleTransferEvent(eventlog *types.Log) error {
 
 	type TransferEvent struct {
 		Value *big.Int
@@ -112,10 +130,14 @@ func handleTransferEvent(eventlog *types.Log) {
 
 	var event TransferEvent
 	err := wethContract.Abi.Unpack(&event, "Transfer", eventlog.Data)
-	assert(err)
+	if err != nil {
+		return err
+	}
 
 	from := common.BytesToAddress(eventlog.Topics[1][:])
 	to := common.BytesToAddress(eventlog.Topics[2][:])
 
 	log.Printf("WTransfer %v %v->%v\n", event.Value, from.Hex(), to.Hex())
+
+	return nil
 }

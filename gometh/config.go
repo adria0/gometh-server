@@ -32,6 +32,7 @@ type Config struct {
 
 func (c *Config) VerifyDeploySigners() error {
 
+	// TODO check that signers are ordered
 	for _, signer := range C.Contracts.DeploySigners {
 		if !common.IsHexAddress(signer) {
 			return fmt.Errorf("Bad initial deploy address %v", signer)

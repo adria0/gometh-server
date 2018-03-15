@@ -13,7 +13,7 @@ func callLock(value *big.Int) error {
 	return err
 }
 
-func handleLockEvent(eventlog *types.Log) {
+func handleLockEvent(eventlog *types.Log) error {
 
 	type LogLockEvent struct {
 		Epoch *big.Int
@@ -23,12 +23,16 @@ func handleLockEvent(eventlog *types.Log) {
 
 	var event LogLockEvent
 	err := parentContract.Abi.Unpack(&event, "LogLock", eventlog.Data)
-	assert(err)
+	if err != nil {
+		return err
+	}
 
 	log.Printf("LockEvent %v %v wei", event.From.Hex(), event.Value)
 
 	mintmsg, err := childContract.Abi.Pack("_mintmultisigned", event.From, event.Value)
-	assert(err)
+	if err != nil {
+		return err
+	}
 
 	var txhash [32]byte
 	copy(txhash[:], eventlog.TxHash.Bytes())
@@ -40,6 +44,6 @@ func handleLockEvent(eventlog *types.Log) {
 		"partialExecuteOn", event.Epoch, txhash, mintmsg,
 	)
 
-	assert(err)
+	return err
 
 }

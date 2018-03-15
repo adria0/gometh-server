@@ -25,12 +25,14 @@ var (
 	ErrReceiptNotRecieved = fmt.Errorf("ErrReceiptNotRecieved")
 )
 
+type EventHandlerFunc func(*types.Log) error
+
 // EventHandler associates a function to an event
 type EventHandler struct {
 	Address        common.Address
 	EventSignature string
 	Topic          string
-	Handler        func(*types.Log)
+	Handler        EventHandlerFunc
 }
 
 // Web3Client defines a connection to a client via websockets
@@ -177,7 +179,7 @@ func (b *Web3Client) Call(to *common.Address, value *big.Int, calldata []byte) (
 }
 
 // RegisterEventHandler registers a function to be called on event emission
-func (b *Web3Client) RegisterEventHandler(contract *Contract, event string, handler func(*types.Log)) error {
+func (b *Web3Client) RegisterEventHandler(contract *Contract, event string, handler EventHandlerFunc) error {
 
 	abievent, ok := contract.Abi.Events[event]
 	if !ok {
@@ -244,7 +246,12 @@ func (b *Web3Client) HandleEvents() error {
 			for _, v := range b.EventHandlers {
 				if logevent.Address == v.Address && logevent.Topics[0].Hex() == v.Topic {
 					if v.Handler != nil {
-						go v.Handler(&logevent)
+						go func() {
+							err := v.Handler(&logevent)
+							if err != nil {
+								log.Println("[EventFailed]", v.EventSignature, err)
+							}
+						}()
 					} else {
 						log.Println("[Event] ", v.EventSignature)
 					}
