@@ -10,6 +10,7 @@ import (
 
 func callLock(value *big.Int) error {
 	_, _, err := parentContract.SendTransactionSync(value, "lock")
+
 	return err
 }
 

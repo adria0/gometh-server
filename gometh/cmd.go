@@ -42,7 +42,7 @@ var lockCmd = &cobra.Command{
 	Long:  "Send ethers to the parentchain->sidechain",
 	Run: func(cmd *cobra.Command, args []string) {
 		serverInit()
-		callLock(big.NewInt(10))
+		assert(callLock(big.NewInt(10)))
 	},
 }
 
@@ -52,7 +52,7 @@ var burnCmd = &cobra.Command{
 	Long:  "Send ethers to the sidechain->parentchain",
 	Run: func(cmd *cobra.Command, args []string) {
 		serverInit()
-		callBurn(big.NewInt(10))
+		assert(callBurn(big.NewInt(10)))
 	},
 }
 
