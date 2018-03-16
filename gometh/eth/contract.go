@@ -5,7 +5,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"math/big"
+
+	cfg "github.com/adriamb/gometh-server/gometh/config"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -68,9 +71,17 @@ func (b *Contract) SendTransactionSync(value *big.Int, funcname string, params .
 
 	msg, err := b.Abi.Pack(funcname, params...)
 	if err != nil {
-		return nil, nil, err
+		if cfg.Verbose > 0 {
+			log.Println("Failed packing ", funcname)
+			return nil, nil, err
+		}
 	}
-	return b.Client.SendTransactionSync(b.Address, value, msg)
+	tx, receipt, err := b.Client.SendTransactionSync(b.Address, value, msg)
+	if err != nil && cfg.Verbose > 0 {
+		log.Println("Failed calling ", funcname)
+	}
+
+	return tx, receipt, err
 }
 
 // Deploy the contract
