@@ -91,7 +91,7 @@ func (b *Contract) SendTransactionSync(value *big.Int, gasLimit uint64, funcname
 		}
 	}
 	tx, receipt, err := b.Client.SendTransactionSync(b.Address, value, gasLimit, msg)
-	if err != nil && cfg.Verbose > 0 {
+	if err != nil {
 		log.Println("Failed calling ", funcname)
 	}
 
@@ -119,13 +119,17 @@ func (b *Contract) Deploy(params ...interface{}) (*types.Transaction, *types.Rec
 }
 
 // Call an constant method
-func (b *Contract) Call(funcname string, params ...interface{}) ([]byte, error) {
+func (b *Contract) Call(ret interface{}, funcname string, params ...interface{}) error {
 
-	msgdata, err := b.Abi.Pack(funcname, params...)
+	input, err := b.Abi.Pack(funcname, params...)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return b.Client.Call(b.Address, big.NewInt(0), msgdata)
+	output, err := b.Client.Call(b.Address, big.NewInt(0), input)
+	if err != nil {
+		return err
+	}
+	return b.Abi.Unpack(ret, funcname, output)
 }
 
 func sign(client *Web3Client, data ...[]byte) ([3][32]byte, error) {
@@ -149,7 +153,7 @@ func sign(client *Web3Client, data ...[]byte) ([3][32]byte, error) {
 	return ret, nil
 }
 
-func (b *Contract) PartialExecuteOff(eventlog *types.Log, value *big.Int, gasLimit uint64, funcname string, params ...interface{}) error {
+func (b *Contract) PartialExecuteOff(eventlog *types.Log, value *big.Int, gasLimit uint64, funcname string, params ...interface{}) ([32]byte, error) {
 
 	epoch := big.NewInt(0)
 
@@ -157,19 +161,21 @@ func (b *Contract) PartialExecuteOff(eventlog *types.Log, value *big.Int, gasLim
 	var txid [32]byte
 	copy(txid[:], txhash)
 
+	log.Println("TXID ", funcname, " ", hex.EncodeToString(txid[:]))
+
 	msg, err := b.Abi.Pack(funcname, params...)
 	if err != nil {
-		return err
+		return txid, err
 	}
 
 	sig, err := sign(b.Client, abi.U256(epoch), txid[:], msg)
 	if err != nil {
-		return err
+		return txid, err
 	}
 	_, _, err = b.SendTransactionSync(
 		big.NewInt(0), gasLimit,
-		"partialExecuteOff", epoch, txid, msg, sig,
+		"partialExecuteOff", txid, msg, sig,
 	)
 
-	return err
+	return txid, err
 }

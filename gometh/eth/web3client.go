@@ -222,7 +222,7 @@ func debugLog(eventlog *types.Log) {
 }
 
 // HandleEvents starts processing event handling
-func (b *Web3Client) HandleEvents() error {
+func (b *Web3Client) HandleEvents(terminatech, terminatedch chan bool) error {
 
 	ctx := context.TODO()
 	ch := make(chan types.Log)
@@ -248,32 +248,40 @@ func (b *Web3Client) HandleEvents() error {
 		Addresses: addrs,
 		Topics:    [][]common.Hash{{}},
 	}
+
 	_, err := b.Client.SubscribeFilterLogs(ctx, query, ch)
 	if err != nil {
 		return err
 	}
+
+	processEvent := func(logevent *types.Log) {
+		if logevent.Removed {
+			return
+		}
+		for _, v := range b.EventHandlers {
+			if logevent.Address == v.Address && logevent.Topics[0].Hex() == v.Topic {
+				if v.Handler != nil {
+					err := v.Handler(logevent)
+					if err != nil {
+						log.Println("[EventProcessingFailed]", v.EventSignature, err)
+					}
+				} else {
+					log.Println("[Event] ", v.EventSignature)
+				}
+				return
+			}
+		}
+	}
+
 	go func() {
 		for true {
-			logevent := <-ch
-			if logevent.Removed {
-				continue
+			select {
+			case logevent := <-ch:
+				go processEvent(&logevent)
+			case <-terminatech:
+				terminatedch <- true
+				return
 			}
-			for _, v := range b.EventHandlers {
-				if logevent.Address == v.Address && logevent.Topics[0].Hex() == v.Topic {
-					if v.Handler != nil {
-						go func() {
-							err := v.Handler(&logevent)
-							if err != nil {
-								log.Println("[EventProcessingFailed]", v.EventSignature, err)
-							}
-						}()
-					} else {
-						log.Println("[Event] ", v.EventSignature)
-					}
-					break
-				}
-			}
-			//debugLog(&logevent)
 		}
 	}()
 

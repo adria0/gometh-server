@@ -34,7 +34,7 @@ func sign(client *eth.Web3Client, data ...[]byte) ([3][32]byte, error) {
 func handleLogEvent(eventlog *types.Log) error {
 
 	var event string
-	err := parentContract.Abi.Unpack(&event, "Log", eventlog.Data)
+	err := mainContract.Abi.Unpack(&event, "Log", eventlog.Data)
 	if err != nil {
 		return err
 	}
@@ -46,25 +46,28 @@ func handleLogEvent(eventlog *types.Log) error {
 
 func serverStart() {
 
-	setContractsAddress()
-
 	// -- register event handlers & start processing
 
-	assert(parentClient.RegisterEventHandler(parentContract, "LogLock", handleLockEvent))
-	assert(parentClient.RegisterEventHandler(parentContract, "Log", handleLogEvent))
+	assert(mainClient.RegisterEventHandler(mainContract, "LogLock", handleLockEvent))
+	assert(mainClient.RegisterEventHandler(mainContract, "Log", handleLogEvent))
 
-	assert(childClient.RegisterEventHandler(childContract, "Log", handleLogEvent))
-	assert(childClient.RegisterEventHandler(childContract, "LogBurn", handleBurnEvent))
-	assert(childClient.RegisterEventHandler(childContract, "LogBurnMultisigned", handleBurnMultisignedEvent))
-	assert(childClient.RegisterEventHandler(childContract, "LogStateChangeMultisigned", handleStateChangeMultisigned))
-	assert(childClient.RegisterEventHandler(childContract, "LogMintMultisigned", handleMintMultisigned))
+	assert(sideClient.RegisterEventHandler(sideContract, "Log", handleLogEvent))
+	assert(sideClient.RegisterEventHandler(sideContract, "LogBurn", handleBurnEvent))
+	assert(sideClient.RegisterEventHandler(sideContract, "LogBurnMultisigned", handleBurnMultisignedEvent))
+	assert(sideClient.RegisterEventHandler(sideContract, "LogStateChangeMultisigned", handleStateChangeMultisigned))
+	assert(sideClient.RegisterEventHandler(sideContract, "LogMintMultisigned", handleMintMultisigned))
 
-	assert(childClient.RegisterEventHandler(wethContract, "StateChange", handleStateChange))
-	assert(childClient.RegisterEventHandler(wethContract, "Transfer", handleTransferEvent))
-	assert(childClient.RegisterEventHandler(wethContract, "Log", handleLogEvent))
+	assert(sideClient.RegisterEventHandler(wethContract, "StateChange", handleStateChange))
+	assert(sideClient.RegisterEventHandler(wethContract, "Transfer", handleTransferEvent))
+	assert(sideClient.RegisterEventHandler(wethContract, "Log", handleLogEvent))
 
-	childClient.HandleEvents()
-	parentClient.HandleEvents()
+	cterminate := make(chan bool)
+	cterminated := make(chan bool)
+	pterminate := make(chan bool)
+	pterminated := make(chan bool)
+
+	sideClient.HandleEvents(cterminate, cterminated)
+	mainClient.HandleEvents(pterminate, pterminated)
 
 	<-time.After(time.Second * 3600)
 }

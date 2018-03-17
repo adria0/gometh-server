@@ -18,16 +18,15 @@ func handleLockEvent(eventlog *types.Log) error {
 	}
 
 	var event LogLockEvent
-	err := parentContract.Abi.Unpack(&event, "LogLock", eventlog.Data)
+	err := mainContract.Abi.Unpack(&event, "LogLock", eventlog.Data)
 	if err != nil {
 		return err
 	}
 
 	log.Printf("RECV LockEvent %v %v wei", event.From.Hex(), event.Value)
-
 	log.Printf("SEND partialExecuteOn _mintmultisigned")
 
-	mintmsg, err := childContract.Abi.Pack("_mintmultisigned", event.From, event.Value)
+	mintmsg, err := sideContract.Abi.Pack("_mintmultisigned", event.From, event.Value)
 	if err != nil {
 		return err
 	}
@@ -36,9 +35,9 @@ func handleLockEvent(eventlog *types.Log) error {
 	var txid [32]byte
 	copy(txid[:], txhash)
 
-	_, _, err = childContract.SendTransactionSync(
+	_, _, err = sideContract.SendTransactionSync(
 		big.NewInt(0), 4000000,
-		"partialExecuteOn", event.Epoch, txid, mintmsg,
+		"partialExecuteOn", txid, mintmsg,
 	)
 
 	if err == nil {

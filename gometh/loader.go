@@ -20,11 +20,11 @@ func assert(err error) {
 }
 
 var (
-	parentClient   *eth.Web3Client
-	childClient    *eth.Web3Client
-	parentContract *eth.Contract
-	childContract  *eth.Contract
-	wethContract   *eth.Contract
+	mainClient   *eth.Web3Client
+	sideClient   *eth.Web3Client
+	mainContract *eth.Contract
+	sideContract *eth.Contract
+	wethContract *eth.Contract
 )
 
 func initClient() {
@@ -42,39 +42,39 @@ func initClient() {
 
 	// -- create clients
 
-	parentClient, err = eth.NewWeb3Client(
+	mainClient, err = eth.NewWeb3Client(
 		cfg.C.MainChain.RPCURL,
 		ks,
 		account,
 	)
 	assert(err)
 
-	childClient, err = eth.NewWeb3Client(
+	sideClient, err = eth.NewWeb3Client(
 		cfg.C.SideChain.RPCURL,
 		ks,
 		account,
 	)
 	assert(err)
 
-	parentClient.ClientMutex = &sync.Mutex{}
-	childClient.ClientMutex = parentClient.ClientMutex
+	mainClient.ClientMutex = &sync.Mutex{}
+	sideClient.ClientMutex = mainClient.ClientMutex
 
-	parentAccountInfo, err := parentClient.AccountInfo()
+	parentAccountInfo, err := mainClient.AccountInfo()
 	assert(err)
 	log.Println("Parent chain account: ", parentAccountInfo)
 
-	childAccountInfo, err := childClient.AccountInfo()
+	childAccountInfo, err := sideClient.AccountInfo()
 	assert(err)
 	log.Println("Child chain account", childAccountInfo)
 
 	// -- load contracts
-	parentContract, err = eth.NewContract(parentClient, cfg.C.Contracts.Path+"/GometParent.json")
+	mainContract, err = eth.NewContract(mainClient, cfg.C.Contracts.Path+"/GomethMain.json")
 	assert(err)
 
-	childContract, err = eth.NewContract(childClient, cfg.C.Contracts.Path+"/GometChild.json")
+	sideContract, err = eth.NewContract(sideClient, cfg.C.Contracts.Path+"/GomethSide.json")
 	assert(err)
 
-	wethContract, err = eth.NewContract(childClient, cfg.C.Contracts.Path+"/WETH.json")
+	wethContract, err = eth.NewContract(sideClient, cfg.C.Contracts.Path+"/WETH.json")
 	assert(err)
 
 }
@@ -95,38 +95,38 @@ func deployContracts() {
 	}
 
 	// -- deploy contracts
-	_, _, err = parentContract.Deploy(initialSigners)
+	_, _, err = mainContract.Deploy(initialSigners)
 	assert(err)
-	log.Println("GometParent deployed at ", parentContract.Address.Hex())
-	_, _, err = childContract.Deploy(initialSigners)
+	log.Println("GomethMain deployed at ", mainContract.Address.Hex())
+	_, _, err = sideContract.Deploy(initialSigners)
 
 	assert(err)
-	log.Println("GometChild deployed at ", childContract.Address.Hex())
-	_, _, err = wethContract.Deploy(childContract.Address)
+	log.Println("GometSide deployed at ", sideContract.Address.Hex())
+	_, _, err = wethContract.Deploy(sideContract.Address)
 
 	assert(err)
 	log.Println("WETH deployed at ", wethContract.Address.Hex())
 
 	// -- set weth address
-	_, _, err = childContract.SendTransactionSync(big.NewInt(0), 0, "init", wethContract.Address)
+	_, _, err = sideContract.SendTransactionSync(big.NewInt(0), 0, "init", wethContract.Address)
 	assert(err)
-	log.Println("WETH attached to GometChild")
+	log.Println("WETH attached to GometSide")
 }
 
 func setContractsAddress() {
 
 	assert(cfg.C.VerifyAddresses())
 
-	parentContract.SetAddress(common.HexToAddress(cfg.C.MainChain.BridgeAddress))
-	log.Println("GometParent address is ", parentContract.Address.Hex())
+	mainContract.SetAddress(common.HexToAddress(cfg.C.MainChain.BridgeAddress))
+	log.Println("GomethMain address is ", mainContract.Address.Hex())
 
-	childContract.SetAddress(common.HexToAddress(cfg.C.SideChain.BridgeAddress))
-	log.Println("GometChild address is ", childContract.Address.Hex())
+	sideContract.SetAddress(common.HexToAddress(cfg.C.SideChain.BridgeAddress))
+	log.Println("GometSide address is ", sideContract.Address.Hex())
 
 	// -- get weth address
-	wethcallresult, err := childContract.Call("weth")
-	assert(err)
-	wethContract.SetAddress(common.BytesToAddress(wethcallresult[12:]))
+	var wethAddress common.Address
+	assert(sideContract.Call(&wethAddress, "weth"))
+	wethContract.SetAddress(wethAddress)
 	log.Println("WETH address is ", wethContract.Address.Hex())
 
 }

@@ -17,7 +17,7 @@ func handleBurnEvent(eventlog *types.Log) error {
 	}
 
 	var event BurnEvent
-	err := childContract.Abi.Unpack(&event, "LogBurn", eventlog.Data)
+	err := sideContract.Abi.Unpack(&event, "LogBurn", eventlog.Data)
 	if err != nil {
 		return err
 	}
@@ -25,7 +25,7 @@ func handleBurnEvent(eventlog *types.Log) error {
 	log.Printf("RECV LogBurn")
 	log.Printf("SEND partialExecuteOff _burnmultisigned")
 
-	err = childContract.PartialExecuteOff(
+	_, err = sideContract.PartialExecuteOff(
 		eventlog, big.NewInt(0), 4000000,
 		"_burnmultisigned", event.From, event.Value,
 	)
@@ -57,7 +57,7 @@ func handleStateChange(eventlog *types.Log) error {
 
 	log.Printf("SEND partialExecuteOff _statechangemultisigned")
 
-	err = childContract.PartialExecuteOff(
+	_, err = sideContract.PartialExecuteOff(
 		eventlog, big.NewInt(0), 4000000,
 		"_statechangemultisigned", event.BlockNo, event.RootState,
 	)
@@ -68,6 +68,7 @@ func handleStateChange(eventlog *types.Log) error {
 func handleStateChangeMultisigned(eventlog *types.Log) error {
 
 	type StateChangeMultisignedEvent struct {
+		TxID      [32]byte
 		BlockNo   *big.Int
 		RootState [32]byte
 	}
@@ -80,12 +81,13 @@ func handleStateChangeMultisigned(eventlog *types.Log) error {
 func handleMintMultisigned(eventlog *types.Log) error {
 
 	type MintMultisignedEvent struct {
+		TxID  [32]byte
 		To    common.Address
 		Value *big.Int
 	}
 
 	var event MintMultisignedEvent
-	err := childContract.Abi.Unpack(&event, "LogMintMultisigned", eventlog.Data)
+	err := sideContract.Abi.Unpack(&event, "LogMintMultisigned", eventlog.Data)
 	if err != nil {
 		return err
 	}
