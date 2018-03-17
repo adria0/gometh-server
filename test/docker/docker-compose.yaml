@@ -9,7 +9,7 @@ services:
       - "18545:8545"
     volumes:
       - ./data:/data:ro
-      - ./../build:/build:ro
+      - ./../../../../../../src:/root/go/src:ro
     links:
       - poa2
       - parent
@@ -26,7 +26,7 @@ services:
       - "28545:8545"
     volumes:
       - ./data:/data:ro
-      - ./../build:/build:ro
+      - ./../../../../../../src:/root/go/src:ro
     links:
       - parent
       - poa3 
@@ -43,7 +43,7 @@ services:
 #    cpu_percent: 5
     volumes:
       - ./data:/data:ro
-      - ./../build:/build:ro
+      - ./../../../../../../src:/root/go/src:ro
     links:
       - parent
     #entrypoint: /bin/sh /data/poa.sh poa3

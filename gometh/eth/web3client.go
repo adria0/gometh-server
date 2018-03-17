@@ -80,7 +80,10 @@ func (b *Web3Client) AccountInfo() (string, error) {
 }
 
 // SendTransactionSync executes a contract method and wait it finalizes
-func (b *Web3Client) SendTransactionSync(to *common.Address, value *big.Int, calldata []byte) (*types.Transaction, *types.Receipt, error) {
+func (b *Web3Client) SendTransactionSync(to *common.Address, value *big.Int, gasLimit uint64, calldata []byte) (*types.Transaction, *types.Receipt, error) {
+
+	b.ClientMutex.Lock()
+	defer b.ClientMutex.Unlock()
 
 	var err error
 	var tx *types.Transaction
@@ -105,22 +108,21 @@ func (b *Web3Client) SendTransactionSync(to *common.Address, value *big.Int, cal
 		Data:  calldata,
 	}
 
-	gasLimit, err := b.Client.EstimateGas(ctx, callmsg)
-	if err != nil {
-		if cfg.Verbose > 0 {
-			log.Printf("Failed EstimateGas from=%v to=%v value=%v data=%v",
-				callmsg.From.Hex(), callmsg.To.Hex(),
-				callmsg.Value, hex.EncodeToString(callmsg.Data),
-			)
+	if gasLimit == 0 {
+		gasLimit, err = b.Client.EstimateGas(ctx, callmsg)
+		if err != nil {
+			if cfg.Verbose > 0 {
+				log.Printf("Failed EstimateGas from=%v to=%v value=%v data=%v",
+					callmsg.From.Hex(), callmsg.To.Hex(),
+					callmsg.Value, hex.EncodeToString(callmsg.Data),
+				)
+			}
+			return nil, nil, err
 		}
-		return nil, nil, err
 	}
-
-	b.ClientMutex.Lock()
 
 	nonce, err := b.Client.NonceAt(ctx, b.Account.Address, nil)
 	if err != nil {
-		b.ClientMutex.Unlock()
 		return nil, nil, err
 	}
 
@@ -144,7 +146,6 @@ func (b *Web3Client) SendTransactionSync(to *common.Address, value *big.Int, cal
 	}
 
 	if tx, err = b.Ks.SignTx(b.Account, tx, network); err != nil {
-		b.ClientMutex.Unlock()
 		return nil, nil, err
 	}
 
@@ -153,24 +154,24 @@ func (b *Web3Client) SendTransactionSync(to *common.Address, value *big.Int, cal
 	}
 
 	if err = b.Client.SendTransaction(ctx, tx); err != nil {
-		b.ClientMutex.Unlock()
 		return nil, nil, err
 	}
-	b.ClientMutex.Unlock()
 
 	start := time.Now()
 	for receipt == nil && time.Now().Sub(start) < b.ReceiptTimeout {
 		receipt, err = b.Client.TransactionReceipt(ctx, tx.Hash())
 		if receipt == nil {
-			time.Sleep(1000 * time.Millisecond)
+			time.Sleep(200 * time.Millisecond)
 		}
 	}
 
 	if receipt != nil && receipt.Status == types.ReceiptStatusFailed {
+		log.Println("FAILED RECEIPT TX", receipt.String())
 		return tx, receipt, ErrReceiptStatusFailed
 	}
 
 	if receipt == nil {
+		log.Println("FAILED TX", tx.String())
 		return tx, receipt, ErrReceiptNotRecieved
 	}
 
@@ -263,7 +264,7 @@ func (b *Web3Client) HandleEvents() error {
 						go func() {
 							err := v.Handler(&logevent)
 							if err != nil {
-								log.Println("[EventFailed]", v.EventSignature, err)
+								log.Println("[EventProcessingFailed]", v.EventSignature, err)
 							}
 						}()
 					} else {

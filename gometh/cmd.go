@@ -31,7 +31,8 @@ var startCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		json, _ := json.MarshalIndent(cfg.C, "", "  ")
 		log.Println("Efective configuration: " + string(json))
-		serverInit()
+		initClient()
+		setContractsAddress()
 		serverStart()
 	},
 }
@@ -41,8 +42,8 @@ var lockCmd = &cobra.Command{
 	Short: "Lock ethers",
 	Long:  "Send ethers to the parentchain->sidechain",
 	Run: func(cmd *cobra.Command, args []string) {
-		serverInit()
-		loadContracts()
+		initClient()
+		setContractsAddress()
 		assert(callLock(big.NewInt(10)))
 	},
 }
@@ -52,8 +53,8 @@ var burnCmd = &cobra.Command{
 	Short: "Unlock ethers",
 	Long:  "Send ethers to the sidechain->parentchain",
 	Run: func(cmd *cobra.Command, args []string) {
-		serverInit()
-		loadContracts()
+		initClient()
+		setContractsAddress()
 		assert(callBurn(big.NewInt(10)))
 	},
 }
@@ -65,8 +66,8 @@ var deployCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		json, _ := json.MarshalIndent(cfg.C, "", "  ")
 		log.Println("Efective configuration: " + string(json))
-		serverInit()
-		serverDeploy()
+		initClient()
+		deployContracts()
 	},
 }
 

@@ -1,9 +1,9 @@
 Keystore:
-  Path : /dyndata/keystore
+  Path : /data/poa2/keystore
   Passwd : 111111
 
 Contracts:
-  Path: /build/contracts
+  Path: /root/go/src/github.com/adriamb/gometh-contracts/build/contracts
   DeploySigners:
     - 9cd367d79929c56db39d04179662a193a14f0957
     - b58159e7c2efd4c6c40c65f1f01b1a357f6fc479
@@ -11,9 +11,8 @@ Contracts:
 
 MainChain:
   RPCURL : ws://parent:8546
-  BridgeAddress : 0x1fB1296Eed8dc671106827F1f0E2A5AF9CFF92a9
+  BridgeAddress : 0xeCf977B9b1BDc2aaF215D1b95c2576c300D832Ad
 
 SideChain:
   RPCURL : ws://127.0.0.1:8546
-  BridgeAddress : 0x7e7177e2c6D2B10437BDe827EE2d7c6F7fF801ab
-
+  BridgeAddress : 0x56104CEE1BDF02aD8f57b9Fb95d5553FcAFe6131

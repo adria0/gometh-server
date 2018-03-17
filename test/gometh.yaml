@@ -3,7 +3,7 @@ Keystore:
   Passwd : 111111
 
 Contracts:
-  Path: ../../../../gometh-contracts/build/contracts 
+  Path: ../gometh-contracts/build/contracts 
   DeploySigners:
     - d12bffb652008e1d46a2cac08b6ceebc4f652b60
 
